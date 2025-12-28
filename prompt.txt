@@ -1,0 +1,49 @@
+You are building a new admin management page in a React + TypeScript + Tailwind CSS app (Next.js App Router).
+
+Follow this exact style and architecture from the existing YearsManagement page:
+
+1. **Global Theme System**  
+   - The app already has a ThemeProvider with 'light' | 'dark' | 'system' support.  
+   - It adds/removes the 'dark' class on <html> and persists in localStorage.  
+   - DO NOT add any local dark mode state or theme toggle button — theme is controlled globally from the navbar.
+
+2. **API Integration**  
+   - Use the existing centralized Axios instance (imported as import api from './axios'; ') which automatically adds Bearer token from localStorage.  
+   - Create a reusable API file: src/components/api/[feature].ts       
+   - Import and use those functions in the component.  
+   - Handle errors gracefully: show user-friendly messages from err.response?.data?.detail if available.
+
+3. **UI/Design Requirements**  
+   - Overall layout: full-height page with light gray background in light mode (bg-gray-50 dark:bg-gray-900)  
+   - Header: white/dark card with bottom border and shadow, containing only the page title (text-3xl font-bold)  
+   - Max width container: max-w-5xl mx-auto px-6  
+   - Cards: rounded-xl shadow-lg bg-white dark:bg-gray-800  
+   - Form inputs: clean, rounded, with proper dark mode borders and background  
+   - Buttons: blue primary (bg-blue-600 hover:bg-blue-700), red for destructive actions  
+   - List items: hover effects (hover:bg-gray-50 dark:hover:bg-gray-700/50), divided by borders  
+   - Success/current indicators: green badge with check icon  
+   - Error messages: red alert box with border  
+   - Use lucide-react icons consistently  
+   - Responsive: flex-col on mobile, flex-row on larger screens where needed
+
+4. **Component Structure Example to Follow**
+   - useState for data, loading, error, form fields
+   - useEffect to load data on mount
+   - Separate handlers for create/update/delete/set-status
+   - Confirmation dialog for destructive actions (window.confirm is fine)
+   - Show loading state on submit buttons
+   - Display current/active item clearly at bottom if relevant
+
+5. **Tailwind Classes to Reuse**
+   - Text: text-gray-900 dark:text-gray-100
+   - Borders: border-gray-300 dark:border-gray-700
+   - Hover: hover:bg-gray-50 dark:hover:bg-gray-700/50
+   - Inputs: border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700
+   - Focus ring: focus:ring-4 focus:ring-blue-500/30
+
+Task: Build a [PAGE NAME] management page (e.g., Departments, Classes, Subjects, etc.) with:
+- List all items
+- Add new item
+- Full dark/light mode support via existing theme system
+
+Make sure the design, spacing, typography, and behavior feel identical to the Year Management page.

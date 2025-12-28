@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+/* Enable manual dark mode toggling with the 'dark' class */
+@custom-variant dark (&:is(.dark, .dark *));
+
+/* Optional: Define theme variables (light by default, override in dark) */
+@theme {
+  --color-background: #ffffff;
+  --color-text: #000000;
+  --color-primary: #3b82f6; /* blue-500 */
+}
+
+@layer theme {
+  :root {
+    @variant dark {
+      --color-background: #1f2937; /* gray-800 */
+      --color-text: #f3f4f6; /* gray-100 */
+      --color-primary: #60a5fa; /* blue-400 */
+    }
+  }
+}
