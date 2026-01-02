@@ -4,17 +4,18 @@ from fastapi import HTTPException
 from .model import Subject
 from .schema import SubjectCreate, SubjectUpdate
 from src.routes.log.services import log_action
-from .permission import verify_user_subject
+from src.routes.auth import service as auth_services
+from src.config.dependencies import check_user_validation_for_grade
+from src.routes.grade.service import GradeService
 
 
 class SubjectService:
 
-    # ---------------- CREATE ----------------
+    
+
     @staticmethod
-    def create_subject(db: Session, data: SubjectCreate, user_id: int,admin_id: int|None =None):
-        if not admin_id:
-            verify_user_subject(db, user_id, data.grade_code)
-        elif
+    def create_subject(db: Session, data: SubjectCreate, user):
+        check_user_validation_for_grade(db, user, data.grade_id)
         subject = Subject(**data.model_dump())
         db.add(subject)
         db.commit()
@@ -22,7 +23,7 @@ class SubjectService:
 
         log_action(
             db=db,
-            user_id=user_id,
+            user_id=user.id,
             action="CREATE",
             table_name="subjects",
             record_id=subject.id,
@@ -33,7 +34,8 @@ class SubjectService:
                 "Th_ch": subject.Th_ch,
                 "Pr_ch": subject.Pr_ch,
                 "is_elective": subject.is_elective,
-                "grade_code": subject.grade_code,
+                "is_active": subject.is_active,
+                "grade_id": subject.grade_id,
             },
         )
 
@@ -41,8 +43,11 @@ class SubjectService:
 
     # ---------------- GET ALL ----------------
     @staticmethod
-    def get_all(db: Session):
-        return db.query(Subject).all()
+    def get_all(db: Session, user):
+        grade_id=GradeService.get_grade_by_user(user,db).id        
+        if grade_id:
+            return db.query(Subject).filter(Subject.grade_id==grade_id).all()
+        raise HTTPException(status_code=403, detail="Subjects not found for the user's grade")
 
     # ---------------- GET BY ID ----------------
     @staticmethod
@@ -52,27 +57,18 @@ class SubjectService:
             raise HTTPException(status_code=404, detail="Subject not found")
         return subject
 
-    # ---------------- GET BY CODE ----------------
+  
     @staticmethod
-    def get_by_code(db: Session, code: str):
-        subject = db.query(Subject).filter(Subject.sub_code == code).first()
-        if not subject:
-            raise HTTPException(status_code=404, detail="Subject not found")
-        return subject
-
-    # ---------------- GET BY NAME ----------------
-    @staticmethod
-    def get_by_name(db: Session, name: str):
-        return db.query(Subject).filter(Subject.sub_name.ilike(f"%{name}%")).all()
-
-    # ---------------- GET ELECTIVE ----------------
-    @staticmethod
-    def get_elective(db: Session):
-        return db.query(Subject).filter(Subject.is_elective == True).all()
+    def get_elective(db: Session, user_id: int):
+        grade_id=get_grade_id_by_user(user_id,db)
+        if grade_id:
+            return db.query(Subject).filter(Subject.grade_id==grade_id, Subject.is_elective == True).all()
+        raise HTTPException(status_code=403, detail="Elective subjects not found for the user's grade")
 
     # ---------------- UPDATE ----------------
     @staticmethod
-    def update_subject(db: Session, subject_id: int, data: SubjectUpdate, user_id: int):
+    def update_subject(db: Session, subject_id: int, data: SubjectUpdate, user):
+        check_user_validation_for_grade(db, user, data.grade_id)
         subject = db.query(Subject).filter(Subject.id == subject_id).first()
         if not subject:
             raise HTTPException(status_code=404, detail="Subject not found")
@@ -83,7 +79,7 @@ class SubjectService:
             "Th_ch": subject.Th_ch,
             "Pr_ch": subject.Pr_ch,
             "is_elective": subject.is_elective,
-            "grade_code": subject.grade_code,
+            "grade_id": subject.grade_id,
         }
 
         for field, value in data.model_dump(exclude_unset=True).items():
@@ -94,7 +90,7 @@ class SubjectService:
 
         log_action(
             db=db,
-            user_id=user_id,
+            user_id=user.id,
             action="UPDATE",
             table_name="subjects",
             record_id=subject.id,
@@ -105,39 +101,40 @@ class SubjectService:
                 "Th_ch": subject.Th_ch,
                 "Pr_ch": subject.Pr_ch,
                 "is_elective": subject.is_elective,
-                "grade_code": subject.grade_code,
+                "grade_id": subject.grade_id,
             },
         )
 
         return subject
 
-    # ---------------- DELETE ----------------
     @staticmethod
-    def delete_subject(db: Session, subject_id: int, user_id: int):
+    def toggle_active(db: Session, subject_id: int, user):
+        grade_id=GradeService.get_grade_by_user(user,db).id
+        check_user_validation_for_grade(db, user, grade_id)
         subject = db.query(Subject).filter(Subject.id == subject_id).first()
         if not subject:
             raise HTTPException(status_code=404, detail="Subject not found")
 
         old_data = {
-            "sub_code": subject.sub_code,
-            "sub_name": subject.sub_name,
-            "Th_ch": subject.Th_ch,
-            "Pr_ch": subject.Pr_ch,
-            "is_elective": subject.is_elective,
-            "grade_code": subject.grade_code,
+            "is_active": subject.is_active,
         }
 
-        db.delete(subject)
+        subject.is_active = not subject.is_active
+        
         db.commit()
+        db.refresh(subject)
 
         log_action(
             db=db,
-            user_id=user_id,
-            action="DELETE",
-            table_name="subjects",
+            user_id=user.id,
+            action="TOGGLE_ACTIVE",
+            table_name="subject",
             record_id=subject_id,
             old_data=old_data,
-            new_data=None,
+            new_data={"is_active": subject.is_active},
         )
 
-        return {"message": "Subject deleted successfully"}
+        return subject
+
+    # ---------------- DELETE ----------------
+   

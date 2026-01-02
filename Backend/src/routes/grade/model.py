@@ -29,3 +29,7 @@ class Grade(Base):
     )
 
     is_active = Column(Boolean, default=True)
+
+    subjects = relationship("Subject", back_populates="grade", cascade="all, delete-orphan")
+
+    students = relationship("Student", back_populates="grade")

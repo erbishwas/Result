@@ -2,13 +2,14 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import jwt
 from datetime import datetime, timedelta
-from fastapi import HTTPException
-
+from fastapi import HTTPException, Depends
 from src.routes.auth.model import User
 from src.routes.grade.model import Grade
 from src.routes.auth import schema
 from src.config.security import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 from src.routes.log.services import log_action
+from .dependencies import get_current_user
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -313,4 +314,17 @@ class UserService:
         if not grade:
             raise HTTPException(status_code=404, detail="Any Grade is not assigned to you")  
         
-        return {"Grade": grade}
+        return grade
+
+        
+    @staticmethod
+    def get_user_by_id(
+        db: Session,
+        user_id: int,
+    ):
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return user
+
+    

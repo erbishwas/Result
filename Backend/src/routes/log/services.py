@@ -1,6 +1,7 @@
 
 from sqlalchemy.orm import Session
 from .model import AuditLog
+from .utils import json_safe
 
 def log_action(
     db: Session,
@@ -17,8 +18,8 @@ def log_action(
         action=action,
         table_name=table_name,
         record_id=record_id,
-        old_data=old_data,
-        new_data=new_data,
+        old_data=json_safe(old_data),
+        new_data=json_safe(new_data),
     )
     db.add(log)
     db.commit()

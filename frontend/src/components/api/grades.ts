@@ -15,6 +15,16 @@ export interface Grade {
   is_active: boolean;
 }
 
+export interface GradeElectiveSubject {
+  id: number;
+  sub_code: string;
+  sub_name: string;
+}
+
+export interface GradeWithElectiveSubjects extends Grade {
+  elective_subjects: GradeElectiveSubject[];
+}
+
 
 
 export interface GradeCreateData {
@@ -69,3 +79,8 @@ export const toggleGradeActive = async (id: number, is_active: boolean): Promise
   const response = await api.patch(`/grades/${id}/toggle-active`, { is_active });
   return response.data;
 };
+
+export const getMyGrade = async (): Promise<GradeWithElectiveSubjects>  => {
+  const response = await api.get('/grades/grade-by-user');
+  return response.data;
+}

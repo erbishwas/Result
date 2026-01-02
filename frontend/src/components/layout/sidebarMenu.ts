@@ -43,9 +43,9 @@ export const sidebarMenu: MenuSection[] = [
     label: "User Workspace",
     groups: [
       {
-        title: "Content",
+        title: "Setup",
         items: [
-          { name: "Dashboard", href: "/dashboard" },
+          { name: "Subjects Management", href: "/subjects" },
           { name: "Posts", href: "/posts" },
           { name: "Media", href: "/media" },
         ],

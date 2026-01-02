@@ -9,6 +9,7 @@ from src.routes.auth.schema import UserRegister
 from src.config.dependencies import admin_only,read_only_or_admin
 from src.routes.auth.dependencies import get_current_user
 from src.routes.auth.service import UserService
+from src.routes.grade.schema import GradeBase
 
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -97,7 +98,7 @@ def select_grade_endpoint(
 ):
     return UserService.admin_manage_grade(db, current_user.id, grade_id)
 
-@router.get("/grade/selected", dependencies=[Depends(admin_only)])
+@router.get("/grade/selected", dependencies=[Depends(admin_only)],response_model=GradeBase)
 def get_selected_grade_endpoint(
     db: Session = Depends(get_db),
     current_user:User= Depends(get_current_user),

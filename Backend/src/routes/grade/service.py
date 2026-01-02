@@ -1,8 +1,11 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from .model import Grade
-from .schema import GradeCreate, GradeUpdate
+from .schema import GradeCreate, GradeUpdate, GradeBase, GradeOut
 from src.routes.log.services import log_action
+from src.routes.auth.service import UserService
+from src.routes.auth.model import User
+from src.routes.subject.model import Subject
 
 
 
@@ -102,3 +105,37 @@ class GradeService:
 
         return grade
 
+
+    def get_grade_by_user(current_user, db: Session):
+
+        # 1️⃣ Get grade
+        print("this is test",current_user.is_admin, current_user.username)
+        if current_user.is_admin:
+            grade_id=db.query(User).filter(User.id==current_user.id).first().grade_code
+            grade = (
+                db.query(Grade)
+                .filter(Grade.id == grade_id)
+                .first()
+            )
+        else:
+            grade = (
+                db.query(Grade)
+                .filter(Grade.grade_teacher_id == current_user.id)
+                .first()
+            )
+
+        if not grade:
+            raise HTTPException(status_code=404, detail="You are not assigned to any grade yet")
+
+        elective_subjects = (
+            db.query(Subject)
+            .filter(
+                Subject.grade_id == grade.id,
+                Subject.is_elective == True,
+                Subject.is_active == True
+            )
+            .all()
+        )
+
+        grade.elective_subjects= elective_subjects
+        return grade

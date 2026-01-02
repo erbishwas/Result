@@ -11,7 +11,8 @@ class SubjectBase(BaseModel):
     Th_ch: float = Field(..., ge=0)
     Pr_ch: float = Field(..., ge=0)
     is_elective: bool = False
-    grade_code: int
+    is_active: bool = True
+    grade_id: int
 
 
 # ---------------------------
@@ -30,7 +31,10 @@ class SubjectUpdate(BaseModel):
     Th_ch: Optional[int] = Field(None, ge=0)
     Pr_ch: Optional[int] = Field(None, ge=0)
     is_elective: Optional[bool] = None
-    grade_code: Optional[int] = None
+    is_active: Optional[bool] = None
+    grade_id: Optional[int] = None
+
+
 
 
 # ---------------------------
@@ -41,3 +45,8 @@ class SubjectResponse(SubjectBase):
 
     class Config:
         from_attributes = True
+
+class SubjectMini(BaseModel):
+    id: int
+    sub_code: str
+    sub_name: str

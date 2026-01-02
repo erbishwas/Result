@@ -5,6 +5,9 @@ from src.routes.auth.router import router as auth_router
 from fastapi.middleware.cors import CORSMiddleware
 from src.routes.year.router import router as year_router
 from src.routes.grade.router import router as grade_router
+from src.routes.subject.router import router as subject_router
+from src.routes.student.router import router as student_router
+from src.routes.elective_subject.router import router as elective_router
 
 
 
@@ -21,6 +24,9 @@ app = FastAPI(
 app.include_router(auth_router)
 app.include_router(year_router)
 app.include_router(grade_router)
+app.include_router(subject_router)
+app.include_router(student_router)
+app.include_router(elective_router)
 
 
 

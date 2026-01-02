@@ -20,7 +20,7 @@ export interface GradeSelectPayload {
 
 export default function SelectGradePage() {
   const [grades, setGrades] = useState<Grade[]>([]);
-  const [grade, setGrade] = useState<Grade | null>(null);
+  const [grade, setGrade] = useState<Grade>();
   const [selectedGradeId, setSelectedGradeId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -45,7 +45,8 @@ export default function SelectGradePage() {
   const loadSelectedGrade = async () => {
     try {
       const data = await fetchAdminGradeSelection();        
-      setGrade(data.Grade);
+      setGrade(data);
+      console.log("Grade"+data);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load selected grade');
     }
@@ -75,7 +76,7 @@ export default function SelectGradePage() {
     }
   };
 
-  const selectedGrade = grade;
+  
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
@@ -130,13 +131,13 @@ export default function SelectGradePage() {
               </div>
 
               {/* Current Selection Preview */}
-              {selectedGrade && (
+              {grade && (
                 <div className="p-6 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
                   <p className="text-sm text-blue-700 dark:text-blue-300 font-medium mb-2">
                     Current Selection:
                   </p>
                   <p className="text-xl font-semibold text-blue-900 dark:text-blue-100">
-                    {selectedGrade.code} — {selectedGrade.name}
+                    {grade.code} — {grade.name}
                   </p>
                 </div>
               )}

@@ -7,10 +7,11 @@ import Login from "./pages/Login";              // Example: non-admin can access
 import YearsManagement from "./pages/YearManagement";
 import GradesManagement from "./pages/GradeManagement";
 import UsersManagement from "./pages/UserManagement";
+import SubjectsManagement from "./pages/General/SubjectManagement";
+import StudentsManagement from "./pages/General/StudentManagement";
 import UserRoleAdmin from "./pages/UserRoleAdmin";
 import NotFound from "./pages/NotFound";
-import Test from "./pages/test";
-import Test1 from "./pages/Test1";
+
 
 // Protect authentication only
 function RequireAuth() {
@@ -48,7 +49,9 @@ export default function AppRouter() {
       <Route element={<RequireAuth />}>
         <Route element={<Layout />}>
         
-          <Route path="/" element={user?.is_admin? <Test1/>:<Test/>} />         
+          <Route path="/" element={user?.is_admin? <StudentsManagement/>:<StudentsManagement/>} />  
+          <Route path="/subjects" element={<SubjectsManagement />} />  
+          <Route path="/students" element={<StudentsManagement />} />     
 
           {/* Admin-Only Routes */}
           <Route element={<RequireAdmin />}>

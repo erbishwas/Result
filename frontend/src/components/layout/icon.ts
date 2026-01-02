@@ -6,6 +6,7 @@ import {
   Database,
   Calendar1,
   GraduationCap,
+  BookOpenCheck,
 } from "lucide-react";
 
 const getIcon = (name: string): React.ReactElement => {
@@ -21,6 +22,8 @@ const getIcon = (name: string): React.ReactElement => {
       return React.createElement(GraduationCap, { className: cls });
     case "User Roles":
       return React.createElement(Users, { className: cls });
+    case "Subjects Management":
+      return React.createElement(BookOpenCheck, { className: cls });
     default:
       return React.createElement(Database, { className: cls });
   }
