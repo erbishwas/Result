@@ -11,7 +11,7 @@ class Grade(Base):
     name = Column(String(100), nullable=False)
 
     subject_count = Column(Integer, nullable=False)
-    has_elective = Column(Boolean, default=False)
+    has_elective = Column(Boolean, default=False , nullable=False)
     elective_count = Column(Integer, default=0)
 
     # 🔗 grade teacher relation
@@ -28,7 +28,7 @@ class Grade(Base):
         lazy="joined",
     )
 
-    is_active = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=True, nullable=False)
 
     subjects = relationship("Subject", back_populates="grade", cascade="all, delete-orphan")
 

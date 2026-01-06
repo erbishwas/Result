@@ -14,6 +14,8 @@ class GradeService:
     # ---------------- CREATE ----------------
     @staticmethod
     def create(db: Session, data: GradeCreate, user_id: int):
+        if(db.query(Grade).filter(Grade.code == data.code).first()):
+            raise HTTPException(status_code=400, detail="Grade code already exists")
         grade = Grade(**data.dict())
         db.add(grade)
         db.commit()
@@ -37,6 +39,9 @@ class GradeService:
         grade = db.query(Grade).filter(Grade.id == grade_id).first()
         if not grade:
             raise HTTPException(status_code=404, detail="Grade not found")
+
+        if data.code != grade.code and db.query(Grade).filter(Grade.code == data.code).first():
+            raise HTTPException(status_code=400, detail="Grade code already exists")
 
         old_data = {
             "code": grade.code,
@@ -139,3 +144,10 @@ class GradeService:
 
         grade.elective_subjects= elective_subjects
         return grade
+
+    @staticmethod
+    def get_elective_count(db: Session, grade_id: int):
+        grade = db.query(Grade).filter(Grade.id == grade_id).first()
+        if not grade:
+            raise HTTPException(status_code=404, detail="Grade not found")
+        return grade.elective_count

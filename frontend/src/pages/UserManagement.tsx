@@ -185,12 +185,26 @@ export default function UsersManagement() {
               Add New User
             </h2>
 
-            <form onSubmit={handleRegister} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={handleRegister} className="grid grid-cols-1 md:grid-cols-2 gap-6" autoComplete='off'>
+              <input
+                type="text"
+                name="username"
+                autoComplete="username"
+                style={{ position: "absolute", top: "-1000px", left: "-1000px" }}
+              />
+
+              <input
+                type="password"
+                name="password"
+                autoComplete="current-password"
+                style={{ position: "absolute", top: "-1000px", left: "-1000px" }}
+              /> 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Username</label>
                 <input
                   type="text"
                   value={username}
+                  name="random-username" // to prevent browser autofill
                   onChange={(e) => setUsername(e.target.value)}
                   required
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-4 focus:ring-blue-500/30"
@@ -202,8 +216,9 @@ export default function UsersManagement() {
                 <input
                   type="password"
                   value={password}
+                  name="random-password" // to prevent browser autofill
                   onChange={(e) => setPassword(e.target.value)}
-                  required
+                  required                  
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-4 focus:ring-blue-500/30"
                 />
               </div>

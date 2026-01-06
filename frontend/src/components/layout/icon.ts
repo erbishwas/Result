@@ -7,6 +7,8 @@ import {
   Calendar1,
   GraduationCap,
   BookOpenCheck,
+  UsersRound,
+  BookPlus
 } from "lucide-react";
 
 const getIcon = (name: string): React.ReactElement => {
@@ -24,6 +26,10 @@ const getIcon = (name: string): React.ReactElement => {
       return React.createElement(Users, { className: cls });
     case "Subjects Management":
       return React.createElement(BookOpenCheck, { className: cls });
+    case "Students Management":
+      return React.createElement(UsersRound, { className: cls });
+    case "Elective Management":
+      return React.createElement(BookPlus, { className: cls });
     default:
       return React.createElement(Database, { className: cls });
   }

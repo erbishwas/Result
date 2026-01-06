@@ -9,6 +9,7 @@ import GradesManagement from "./pages/GradeManagement";
 import UsersManagement from "./pages/UserManagement";
 import SubjectsManagement from "./pages/General/SubjectManagement";
 import StudentsManagement from "./pages/General/StudentManagement";
+import ElectiveManagement from "./pages/General/ElectiveManagement";
 import UserRoleAdmin from "./pages/UserRoleAdmin";
 import NotFound from "./pages/NotFound";
 
@@ -49,9 +50,10 @@ export default function AppRouter() {
       <Route element={<RequireAuth />}>
         <Route element={<Layout />}>
         
-          <Route path="/" element={user?.is_admin? <StudentsManagement/>:<StudentsManagement/>} />  
+          <Route path="/" element={user?.is_admin? <ElectiveManagement/>:<ElectiveManagement/>} />  
           <Route path="/subjects" element={<SubjectsManagement />} />  
-          <Route path="/students" element={<StudentsManagement />} />     
+          <Route path="/students" element={<StudentsManagement />} />
+          <Route path="/electives" element={<ElectiveManagement />} />     
 
           {/* Admin-Only Routes */}
           <Route element={<RequireAdmin />}>

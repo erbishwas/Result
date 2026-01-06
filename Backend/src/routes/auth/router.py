@@ -17,7 +17,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 # -------- Register --------
 @router.post("/register", dependencies=[Depends(admin_only)])
 def register(user: schema.UserRegister, db: Session = Depends(get_db), current_user:User= Depends(get_current_user)):
-    return UserService.user_register(db, current_user.id, user)
+    return UserService.user_register(db, current_user, user)
 
 # -------- Login --------
 @router.post("/login", response_model=schema.Token)

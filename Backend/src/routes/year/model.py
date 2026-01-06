@@ -6,7 +6,7 @@ class Year(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     year = Column(String(10), unique=True, nullable=False)
-    is_current = Column(Boolean, default=False)
+    is_current = Column(Boolean, default=False, nullable=False)
 
 
 

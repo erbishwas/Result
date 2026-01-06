@@ -24,8 +24,8 @@ export default function SubjectsManagement() {
   const [form, setForm] = useState({
     sub_code: '',
     sub_name: '',
-    Th_ch: 0,
-    Pr_ch: 0,
+    Th_ch: '',
+    Pr_ch: '',
     is_elective: false,
     grade_id: 0,
   });
@@ -80,7 +80,7 @@ export default function SubjectsManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!form.sub_code || !form.sub_name || form.Th_ch < 0 || form.Pr_ch < 0) {
+    if (!form.sub_code || !form.sub_name || parseFloat(form.Th_ch) < 0 || parseFloat(form.Pr_ch) < 0) {
       setToast({ type: 'error', message: 'Please fill all required fields correctly' });
       return;
     }
@@ -88,11 +88,16 @@ export default function SubjectsManagement() {
     setSubmitting(true);
 
     try {
+      const formattedForm = {
+        ...form,
+        Th_ch: parseFloat(form.Th_ch),
+        Pr_ch: parseFloat(form.Pr_ch),
+      };
       if (editingId) {
-        await updateSubject(editingId, form);
+        await updateSubject(editingId, formattedForm);
         setToast({ type: 'success', message: 'Subject updated successfully' });
       } else {
-        await createSubject(form);
+        await createSubject(formattedForm);
         setToast({ type: 'success', message: 'Subject added successfully' });
       }
       resetForm();
@@ -112,8 +117,8 @@ export default function SubjectsManagement() {
     setForm({
       sub_code: subject.sub_code,
       sub_name: subject.sub_name,
-      Th_ch: subject.Th_ch,
-      Pr_ch: subject.Pr_ch,
+      Th_ch: subject.Th_ch.toString(),
+      Pr_ch: subject.Pr_ch.toString(),
       is_elective: subject.is_elective,
       grade_id: myGrade!.id,
     });
@@ -149,8 +154,8 @@ export default function SubjectsManagement() {
     setForm({
       sub_code: '',
       sub_name: '',
-      Th_ch: 0,
-      Pr_ch: 0,
+      Th_ch: '',
+      Pr_ch: '',
       is_elective: false,
       grade_id: myGrade?.id || 0,
     });
@@ -228,9 +233,9 @@ export default function SubjectsManagement() {
                 <input
                   type="number"
                   min="0"
-                  step="0.01"
+                  step="0.001"
                   value={form.Th_ch}
-                  onChange={(e) => setForm({ ...form, Th_ch: Number(e.target.value) })}
+                  onChange={(e) => setForm({ ...form, Th_ch: e.target.value })}
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-4 focus:ring-blue-500/30"
                   required
                   disabled={loadingGrade}
@@ -244,9 +249,9 @@ export default function SubjectsManagement() {
                 <input
                   type="number"
                   min="0"
-                  step="0.01"
+                  step="0.001"
                   value={form.Pr_ch}
-                  onChange={(e) => setForm({ ...form, Pr_ch: Number(e.target.value) })}
+                  onChange={(e) => setForm({ ...form, Pr_ch: e.target.value })}
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-4 focus:ring-blue-500/30"
                   required
                   disabled={loadingGrade}

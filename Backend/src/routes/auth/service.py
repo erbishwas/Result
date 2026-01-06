@@ -229,7 +229,7 @@ class UserService:
     @staticmethod
     def user_register(
         db: Session,
-        current_user: int,
+        current_user: User,
         user: schema.UserRegister
     ):
         if db.query(User).filter(User.username == user.username).first():
@@ -241,7 +241,7 @@ class UserService:
             grade_code=user.grade_code,
             is_admin=user.is_admin
         )
-        if new_user.is_admin and current_user.id != 1:
+        if new_user.is_admin and current_user.id != 0:
             raise HTTPException(status_code=400, detail="Only super admin can create admin users")  
 
         old_data = {}
@@ -251,7 +251,7 @@ class UserService:
 
         log_action(
             db=db,
-            user_id=current_user,
+            user_id=current_user.id,
             action="CREATE",
             table_name="users",
             record_id=new_user.id,

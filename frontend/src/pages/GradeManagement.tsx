@@ -11,6 +11,8 @@ import {
   type Grade, 
 } from '../components/api/grades';
 
+import Toast from '../components/layout/Toast';
+
 import { getAllUsers, type UserMini, } from '../components/api/users';
 
 export default function GradesManagement() {
@@ -165,11 +167,7 @@ export default function GradesManagement() {
             {editingId ? 'Edit Grade' : 'Add New Grade'}
           </h2>
 
-          {error && (
-            <div className="mb-6 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300">
-              {error}
-            </div>
-          )}
+          {error && (<Toast type="error" message={error} onClose={() => setError(null)} />)}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -216,34 +214,42 @@ export default function GradesManagement() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Grade Teacher
-                </label>
-                <select
-                  value={form.grade_teacher_id ?? ''}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      grade_teacher_id: e.target.value ? Number(e.target.value) : null,
-                    })
-                  }
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-4 focus:ring-blue-500/30"
-                >
-                  {editingId ?<option value={form.grade_teacher_id}>{userMap[form.grade_teacher_id]}</option>
-                  :<option value="">None (Optional)</option>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Grade Teacher
+              </label>
+
+              <select
+                value={form.grade_teacher_id ?? ''}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    grade_teacher_id: e.target.value === '' ? null : Number(e.target.value),
+                  })
                 }
-                  {loadingTeachers ? (
-                    <option disabled>Loading teachers...</option>
-                  ) : (
-                    
-                    teachers.map((teacher) => (
-                      <option key={teacher.id} value={teacher.id}>
-                        {teacher.username}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-4 focus:ring-blue-500/30"
+              >
+                <option value="">None (Optional)</option>
+
+                {/* Preserve selected teacher before list loads */}
+                {form.grade_teacher_id &&
+                  !teachers.some(t => t.id === form.grade_teacher_id) && (
+                    <option value={form.grade_teacher_id}>
+                      {userMap?.[form.grade_teacher_id] || 'Current Teacher'}
+                    </option>
+                )}
+
+                {loadingTeachers ? (
+                  <option disabled>Loading teachers...</option>
+                ) : (
+                  teachers.map((teacher) => (
+                    <option key={teacher.id} value={teacher.id}>
+                      {teacher.username}
+                    </option>
+                  ))
+                )}
+              </select>
+
+            </div>
 
               <div className="flex items-center space-x-3">
                 <input

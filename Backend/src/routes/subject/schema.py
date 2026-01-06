@@ -28,8 +28,8 @@ class SubjectCreate(SubjectBase):
 class SubjectUpdate(BaseModel):
     sub_code: Optional[str] = Field(None, max_length=20)
     sub_name: Optional[str] = Field(None, max_length=100)
-    Th_ch: Optional[int] = Field(None, ge=0)
-    Pr_ch: Optional[int] = Field(None, ge=0)
+    Th_ch: Optional[float] = Field(None, ge=0)
+    Pr_ch: Optional[float] = Field(None, ge=0)
     is_elective: Optional[bool] = None
     is_active: Optional[bool] = None
     grade_id: Optional[int] = None

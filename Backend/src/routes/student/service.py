@@ -16,14 +16,8 @@ class StudentService:
     def create_student(db: Session, data: StudentCreate, user):
         check_user_validation_for_grade(db, user, data.grade_id)
 
-        student_data = data.model_dump(exclude={"elective_subjects"})
-        student = Student(**student_data)
-        db.add(student)
-        db.flush()        
-
-        for ele in data.elective_subjects:
-            mapping =ElectiveSub(student_id=student.id, sub_id=ele.sub_id, year=ele.year) 
-            db.add(mapping)
+        student = Student(**data.model_dump())
+        db.add(student)        
         db.commit()
         db.refresh(student)
 
@@ -31,7 +25,7 @@ class StudentService:
             db=db,
             user_id=user.id,
             action="CREATE",
-            table_name="students and elective_subjects",
+            table_name="students",
             record_id=student.id,
             old_data=None,
             new_data=data.model_dump(),
@@ -42,7 +36,7 @@ class StudentService:
     @staticmethod
     def get_all(db: Session, user):
         grade_id = GradeService.get_grade_by_user(user, db).id
-        return db.query(Student).filter(Student.grade_id == grade_id).all()
+        return db.query(Student).filter(Student.grade_id == grade_id).order_by(Student.is_active.desc(),Student.roll.asc()).all()
 
     @staticmethod
     def get_by_id(db: Session, student_id: int):
@@ -58,14 +52,12 @@ class StudentService:
             raise HTTPException(status_code=404, detail="Student not found")
 
         old_data = student.__dict__.copy()
-        student_data = data.model_dump(exclude={"elective_subjects"})
+        student_data = data.model_dump( exclude_unset=True)
 
-        for field, value in student_data.model_dump(exclude_unset=True).items():
+        for field, value in student_data.items():
             setattr(student, field, value)
 
-        if data.elective_subjects is not None:
-            for ele in data.elective_subjects:            
-                ElectiveSubService.update(db, ele, user)
+        
 
         db.commit()
         db.refresh(student)

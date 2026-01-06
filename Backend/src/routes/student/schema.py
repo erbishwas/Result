@@ -1,7 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 
-from src.routes.elective_subject.schema import ElectiveSubResponse, ElectiveSubBase, ElectiveSubUpdate, ElectiveSubCreate
 
 
 class StudentBase(BaseModel):
@@ -17,7 +16,6 @@ class StudentBase(BaseModel):
 
 class StudentCreate(StudentBase):
 
-    elective_subjects: Optional[list[ElectiveSubCreate]] = Field(default_factory=list)
     pass
 
 
@@ -27,13 +25,20 @@ class StudentUpdate(BaseModel):
     year: Optional[str] = None
     grade_id: Optional[int] = None
     is_active: Optional[bool] = None
-    elective_subjects: Optional[list[ElectiveSubUpdate]] = Field(default_factory=list)
 
 
 
 class StudentResponse(StudentBase):
     id: int
-    elective_subjects:Optional[list[ElectiveSubResponse]]= Field(default_factory=list)
+    
+
+    class Config:
+        from_attributes = True
+
+class StudentMini(BaseModel):
+    id: int
+    roll: str
+    name: str
 
     class Config:
         from_attributes = True

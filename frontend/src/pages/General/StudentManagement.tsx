@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Check, Edit2, Plus, UserX, UserCheck } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { AxiosError } from 'axios';
+import { Check, Edit2, Plus, UserX, UserCheck, ArrowRight, Save, X } from 'lucide-react';
 import {
   getStudents,
   createStudent,
@@ -9,15 +10,15 @@ import {
   toggleStudentActive,
   type Student,
 } from '../../components/api/student';
-import { getMyGrade, type GradeWithElectiveSubjects } from '../../components/api/grades';
-import { fetchYears,type Year } from '../../components/api/year';
+import { getMyGrade } from '../../components/api/grades';
+import { fetchYears } from '../../components/api/year';
 import Toast from '../../components/layout/Toast';
 
-
 let currentYear: string = "";
+
 export default function StudentsManagement() {
   const [students, setStudents] = useState<Student[]>([]);
-  const [myGrade, setMyGrade] = useState<GradeWithElectiveSubjects | null>(null);
+  const [myGrade, setMyGrade] = useState<{ id: number; code: string; name: string } | null>(null);
   const [years, setYears] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingGrade, setLoadingGrade] = useState(true);
@@ -25,29 +26,29 @@ export default function StudentsManagement() {
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  
-
   const [form, setForm] = useState({
     roll: '',
     name: '',
     year: '',
     grade_id: 0,
-    selectedElectives: [] as number[],
   });
 
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [sequentialMode, setSequentialMode] = useState(false);
+  const [studentCount, setStudentCount] = useState(0);
 
-  // Fetch grade
+  // Fetch user's assigned grade
   const fetchMyGrade = async () => {
     try {
       setLoadingGrade(true);
       const grade = await getMyGrade();
       setMyGrade(grade);
       setForm((prev) => ({ ...prev, grade_id: grade.id }));
-    } catch (err: any) {
+    } catch (err) {
+      const error = err as AxiosError;
       setToast({
         type: 'error',
-        message: err.response?.data?.detail || 'Failed to load your assigned grade',
+        message: (error.response?.data as { detail: string }).detail || 'Failed to load your assigned grade',
       });
     } finally {
       setLoadingGrade(false);
@@ -55,111 +56,95 @@ export default function StudentsManagement() {
   };
 
   // Fetch available years
-  const getYears = async () => {
+  const fetchAvailableYears = async () => {
     try {
       setLoadingYears(true);
       const data = await fetchYears();
-      const temp:string[]=[];
+      const temp: string[] = [];
       for (let i = 0; i < data.length; i++) {
-        if(data[i].is_current){currentYear=data[i].year;}
+        if (data[i].is_current) {
+          currentYear = data[i].year;
+        }
         temp.push(data[i].year);
       }
-      
       setYears(temp);
-      
-      setForm((prev) => ({ ...prev, year: temp[0] }));
-      
-    } catch (err: any) {
+      setForm((prev) => ({ ...prev, year: currentYear || temp[0] || '' }));
+    } catch (err) {
+      const error = err as AxiosError;
       setToast({
         type: 'error',
-        message: err.response?.data?.detail || 'Failed to load years',
+        message: (error.response?.data as { detail: string }).detail || 'Failed to load years',
       });
-      // Fallback years
-     
     } finally {
       setLoadingYears(false);
     }
   };
 
-  // Fetch students
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     if (!myGrade) return;
     try {
       setLoading(true);
       const data = await getStudents();
       setStudents(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as AxiosError;
       setToast({
         type: 'error',
-        message: err.response?.data?.detail || 'Failed to load students',
+        message: (error.response?.data as { detail: string }).detail || 'Failed to load students',
       });
     } finally {
       setLoading(false);
     }
-  };
+  }, [myGrade]);
 
   useEffect(() => {
     fetchMyGrade();
-    getYears();
+    fetchAvailableYears();
   }, []);
 
   useEffect(() => {
     if (myGrade) {
       fetchStudents();
     }
-  }, [myGrade]);
+  }, [myGrade, fetchStudents]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!form.roll || !form.name) {
-      setToast({ type: 'error', message: 'Please fill roll and name' });
+    if (!form.roll || !form.name || !form.year) {
+      setToast({ type: 'error', message: 'Please fill all required fields correctly' });
       return;
     }
 
-    if (!editingId && myGrade?.has_elective) {
-      if (form.selectedElectives.length !== myGrade.elective_count) {
-        setToast({
-          type: 'error',
-          message: `Please select exactly ${myGrade.elective_count} elective subject(s)`,
-        });
-        return;
-      }
-    }
-
     setSubmitting(true);
+    setToast(null);
 
     try {
-      const payload: any = {
-        roll: form.roll,
-        name: form.name,
-        year: form.year,
-        grade_id: form.grade_id,
-      };
-
-      // Only include elective_subjects on create
-      if (!editingId && myGrade?.has_elective && form.selectedElectives.length > 0) {
-        payload.elective_subjects = form.selectedElectives.map((sub_id) => ({
-          sub_id,
-          year: form.year, // Same year as student
-        }));
-      }
-
       if (editingId) {
-        await updateStudent(editingId, payload);
+        await updateStudent(editingId, form);
         setToast({ type: 'success', message: 'Student updated successfully' });
+        resetForm();
       } else {
-        await createStudent(payload);
-        setToast({ type: 'success', message: 'Student added successfully' });
+        await createStudent(form);
+        setStudentCount(prev => prev + 1);
+        
+        if (sequentialMode) {
+          setToast({ type: 'success', message: `Student ${studentCount + 1} added successfully. Continue with next...` });
+          // Reset form for next student but keep year and grade_id
+          setForm(prev => ({
+            roll: '',
+            name: '',
+            year: prev.year,
+            grade_id: prev.grade_id,
+          }));
+        } else {
+          setToast({ type: 'success', message: 'Student added successfully' });
+          resetForm();
+        }
       }
-
-      resetForm();
       await fetchStudents();
-    } catch (err: any) {
-      setToast({
-        type: 'error',
-        message: err.response?.data?.detail || 'Operation failed',
-      });
+    } catch (err) {
+      const error = err as AxiosError;
+      setToast({ type: 'error', message: (error.response?.data as { detail: string }).detail || 'Operation failed' });
     } finally {
       setSubmitting(false);
     }
@@ -170,48 +155,62 @@ export default function StudentsManagement() {
       roll: student.roll,
       name: student.name,
       year: student.year,
-      grade_id: myGrade!.id,
-      selectedElectives: student.elective_subjects.map((e) => e.sub_id),
+      grade_id: student.grade_id,
     });
     setEditingId(student.id);
+    setSequentialMode(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleToggleActive = async (student: Student) => {
     const newActive = !student.is_active;
-    if (!window.confirm(`Are you sure you want to ${newActive ? 'activate' : 'deactivate'} this student?`))
-      return;
+    if (!window.confirm(`Are you sure you want to ${newActive ? 'activate' : 'deactivate'} this student?`)) return;
 
     try {
       await toggleStudentActive(student.id);
       await fetchStudents();
-      setToast({
-        type: 'success',
-        message: `Student ${newActive ? 'activated' : 'deactivated'} successfully`,
-      });
-    } catch (err: any) {
-      setToast({
-        type: 'error',
-        message: err.response?.data?.detail || 'Failed to update status',
-      });
+      setToast({ type: 'success', message: `Student ${newActive ? 'activated' : 'deactivated'} successfully` });
+    } catch (err) {
+      const error = err as AxiosError;
+      setToast({ type: 'error', message: (error.response?.data as { detail: string }).detail || 'Failed to update status' });
     }
+  };
+
+  const startSequentialMode = () => {
+    setSequentialMode(true);
+    setStudentCount(0);
+    setEditingId(null);
+    setForm(prev => ({
+      roll: '',
+      name: '',
+      year: prev.year,
+      grade_id: prev.grade_id,
+    }));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelSequentialMode = () => {
+    setSequentialMode(false);
+    setStudentCount(0);
+    resetForm();
+  };
+
+  const finishSequentialMode = () => {
+    setToast({ type: 'success', message: `Successfully added ${studentCount} student(s) in sequence` });
+    setSequentialMode(false);
+    setStudentCount(0);
+    resetForm();
   };
 
   const resetForm = () => {
     setForm({
       roll: '',
       name: '',
-      year: years[0],
+      year: currentYear,
       grade_id: myGrade?.id || 0,
-      selectedElectives: [],
     });
     setEditingId(null);
-  };
-
-  // Lookup subject name from grade's elective list
-  const getSubjectDisplay = (subId: number) => {
-    const subj = myGrade?.elective_subjects?.find((s) => s.id === subId);
-    return subj ? `${subj.sub_code} - ${subj.sub_name}` : `ID: ${subId}`;
+    setSequentialMode(false);
   };
 
   return (
@@ -224,19 +223,11 @@ export default function StudentsManagement() {
               Students Management
             </h1>
             {loadingGrade || loadingYears ? (
-              <p className="mt-2 text-gray-600 dark:text-gray-400">Loading...</p>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">Loading your grade...</p>
             ) : myGrade ? (
-              <div className="mt-2 space-y-1">
-                <p className="text-lg text-blue-600 dark:text-blue-400 font-medium">
-                  Managing students for:{' '}
-                  <span className="font-bold">{myGrade.code} - {myGrade.name}</span>
-                </p>
-                {myGrade.has_elective && (
-                  <p className="text-sm text-purple-600 dark:text-purple-400">
-                    Requires {myGrade.elective_count} elective subject(s)
-                  </p>
-                )}
-              </div>
+              <p className="mt-2 text-lg text-blue-600 dark:text-blue-400 font-medium">
+                Managing students for: <span className="font-bold">{myGrade.code} - {myGrade.name}</span>
+              </p>
             ) : (
               <p className="mt-2 text-red-600 dark:text-red-400">
                 No grade assigned. Contact administrator.
@@ -245,11 +236,27 @@ export default function StudentsManagement() {
           </div>
         </div>
 
-        {/* Form */}
+        {/* Form Card */}
         <div className="mb-8 rounded-xl shadow-lg bg-white dark:bg-gray-800 p-8">
-          <h2 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-gray-100">
-            {editingId ? 'Edit Student' : 'Add New Student'}
-          </h2>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+              {editingId ? 'Edit Student' : sequentialMode ? `Add Student ${studentCount + 1}` : 'Add New Student'}
+            </h2>
+            {sequentialMode && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Added: {studentCount} student(s)
+                </span>
+                <button
+                  onClick={finishSequentialMode}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg flex items-center gap-2 transition"
+                >
+                  <Check className="w-4 h-4" />
+                  Finish
+                </button>
+              </div>
+            )}
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -261,16 +268,17 @@ export default function StudentsManagement() {
                   type="text"
                   value={form.roll}
                   onChange={(e) => setForm({ ...form, roll: e.target.value })}
-                  placeholder="e.g. 001"
+                  placeholder="e.g. ROLL001"
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-4 focus:ring-blue-500/30"
                   required
-                  disabled={loadingGrade || loadingYears}
+                  disabled={submitting || loadingGrade || loadingYears}
+                  autoFocus={sequentialMode}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Student Name *
+                  Name *
                 </label>
                 <input
                   type="text"
@@ -279,137 +287,123 @@ export default function StudentsManagement() {
                   placeholder="e.g. John Doe"
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-4 focus:ring-blue-500/30"
                   required
-                  disabled={loadingGrade || loadingYears}
+                  disabled={submitting || loadingGrade || loadingYears}
                 />
               </div>
 
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Academic Year *
+                  Year *
                 </label>
                 <select
-                   value={currentYear}
+                  value={form.year}
                   onChange={(e) => setForm({ ...form, year: e.target.value })}
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-4 focus:ring-blue-500/30"
-                  disabled={loadingGrade || loadingYears}
+                  disabled={submitting || loadingGrade || loadingYears || sequentialMode}
                 >
-                  {years.map((year) => (
-                    <option key={year} value={year} >
-                      {year} {year===currentYear && '(Current)'}
-                    </option>
-                  ))}
+                  <option key={currentYear} value={currentYear}>
+                    {currentYear}
+                  </option>
                 </select>
               </div>
-
-              {/* Elective Selection */}
-              {myGrade?.has_elective && !editingId && (
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Elective Subjects * (Select exactly {myGrade.elective_count})
-                  </label>
-                  {myGrade.elective_subjects.length === 0 ? (
-                    <p className="text-orange-600 dark:text-orange-400">
-                      No elective subjects available for this grade.
-                    </p>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      {myGrade.elective_subjects.map((subject) => (
-                        <label
-                          key={subject.id}
-                          className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={form.selectedElectives.includes(subject.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setForm({
-                                  ...form,
-                                  selectedElectives: [...form.selectedElectives, subject.id],
-                                });
-                              } else {
-                                setForm({
-                                  ...form,
-                                  selectedElectives: form.selectedElectives.filter(
-                                    (id) => id !== subject.id
-                                  ),
-                                });
-                              }
-                            }}
-                            className="h-5 w-5 text-purple-600 rounded focus:ring-purple-500"
-                          />
-                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {subject.sub_code} - {subject.sub_name}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                    Selected: {form.selectedElectives.length} / {myGrade.elective_count}
-                  </p>
-                </div>
-              )}
-
-              {/* Read-only electives on edit */}
-              {editingId && myGrade?.has_elective && form.selectedElectives.length > 0 && (
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Assigned Electives (Cannot be changed)
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {form.selectedElectives.map((subId) => (
-                      <span
-                        key={subId}
-                        className="px-3 py-1 rounded-full text-xs bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300"
-                      >
-                        {getSubjectDisplay(subId)}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="flex gap-4">
-              <button
-                type="submit"
-                disabled={submitting || loadingGrade || loadingYears || !myGrade}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white font-medium rounded-lg flex items-center gap-2 transition"
-              >
-                <Plus className="w-5 h-5" />
-                {submitting ? 'Saving...' : editingId ? 'Update Student' : 'Add Student'}
-              </button>
-
-              {editingId && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="px-6 py-3 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 font-medium rounded-lg transition"
-                >
-                  Cancel
-                </button>
+              {!editingId && !sequentialMode ? (
+                <>
+                  <button
+                    type="submit"
+                    disabled={submitting || loadingGrade || loadingYears || !myGrade}
+                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white font-medium rounded-lg flex items-center gap-2 transition"
+                  >
+                    <Plus className="w-5 h-5" />
+                    {submitting ? 'Saving...' : 'Add Student'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={startSequentialMode}
+                    disabled={submitting || loadingGrade || loadingYears || !myGrade}
+                    className="px-6 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-70 text-white font-medium rounded-lg flex items-center gap-2 transition"
+                  >
+                    <ArrowRight className="w-5 h-5" />
+                    Add Multiple Students
+                  </button>
+                </>
+              ) : sequentialMode ? (
+                <>
+                  <button
+                    type="submit"
+                    disabled={submitting || loadingGrade || loadingYears || !myGrade}
+                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white font-medium rounded-lg flex items-center gap-2 transition"
+                  >
+                    <ArrowRight className="w-5 h-5" />
+                    {submitting ? 'Saving...' : 'Save & Next'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelSequentialMode}
+                    className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg flex items-center gap-2 transition"
+                  >
+                    <X className="w-5 h-5" />
+                    Cancel Sequence
+                  </button>
+                </>
+              ) : (
+                // Editing mode buttons
+                <>
+                  <button
+                    type="submit"
+                    disabled={submitting || loadingGrade || loadingYears || !myGrade}
+                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white font-medium rounded-lg flex items-center gap-2 transition"
+                  >
+                    <Save className="w-5 h-5" />
+                    {submitting ? 'Saving...' : 'Update Student'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="px-6 py-3 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 font-medium rounded-lg transition"
+                  >
+                    Cancel
+                  </button>
+                </>
               )}
             </div>
           </form>
         </div>
 
-        {/* Students List */}
+        {/* List Card */}
         <div className="rounded-xl shadow-lg bg-white dark:bg-gray-800 overflow-hidden">
           <div className="p-8 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-              All Students ({students.length})
-            </h2>
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                All Students ({students.length})
+              </h2>
+              {!sequentialMode && !editingId && (
+                <button
+                  onClick={startSequentialMode}
+                  disabled={loadingGrade || loadingYears || loading || !myGrade}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-70 text-white font-medium rounded-lg flex items-center gap-2 transition"
+                >
+                  <ArrowRight className="w-4 h-4" />
+                  Quick Add Mode
+                </button>
+              )}
+            </div>
           </div>
 
           {loadingGrade || loadingYears ? (
-            <div className="p-8 text-center text-gray-500 dark:text-gray-400">Loading...</div>
+            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+              Loading...
+            </div>
           ) : !myGrade ? (
             <div className="p-8 text-center text-red-600 dark:text-red-400">
               You are not assigned to any grade.
             </div>
           ) : loading ? (
-            <div className="p-8 text-center text-gray-500 dark:text-gray-400">Loading students...</div>
+            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+              Loading students...
+            </div>
           ) : students.length === 0 ? (
             <div className="p-8 text-center text-gray-500 dark:text-gray-400">
               No students found. Add one above.
@@ -443,24 +437,6 @@ export default function StudentsManagement() {
 
                       <div className="mt-3 text-sm text-gray-600 dark:text-gray-400 space-y-1">
                         <p>Year: {student.year}</p>
-
-                        {myGrade?.has_elective && student.elective_subjects.length > 0 && (
-                          <div>
-                            <span className="font-medium text-purple-700 dark:text-purple-300">
-                              Electives ({student.elective_subjects.length}):
-                            </span>
-                            <div className="mt-1 flex flex-wrap gap-2">
-                              {student.elective_subjects.map((elective) => (
-                                <span
-                                  key={elective.id}
-                                  className="px-3 py-1 rounded-full text-xs bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300"
-                                >
-                                  {getSubjectDisplay(elective.sub_id)}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </div>
 
@@ -469,6 +445,7 @@ export default function StudentsManagement() {
                         onClick={() => handleEdit(student)}
                         className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition"
                         title="Edit"
+                        disabled={sequentialMode}
                       >
                         <Edit2 className="w-5 h-5" />
                       </button>
@@ -481,6 +458,7 @@ export default function StudentsManagement() {
                             : 'text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20'
                         }`}
                         title={student.is_active ? 'Deactivate' : 'Activate'}
+                        disabled={sequentialMode}
                       >
                         {student.is_active ? <UserX className="w-5 h-5" /> : <UserCheck className="w-5 h-5" />}
                       </button>

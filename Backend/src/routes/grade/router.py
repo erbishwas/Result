@@ -13,7 +13,7 @@ router = APIRouter(prefix="/grades", tags=["Grades"])
 
 
 
-@router.post("/", response_model=GradeOut, dependencies=[Depends(admin_only)])
+@router.post("/", response_model=GradeOutNormal, dependencies=[Depends(admin_only)])
 def create_grade(
     data: GradeCreate,
     db: Session = Depends(get_db),
@@ -22,7 +22,7 @@ def create_grade(
     return GradeService.create(db, data, current_user.id)
 
 
-@router.put("/{grade_id}", response_model=GradeOut, dependencies=[Depends(admin_only)])
+@router.put("/{grade_id}", response_model=GradeOutNormal, dependencies=[Depends(admin_only)])
 def update_grade(
     grade_id: int,
     data: GradeUpdate,

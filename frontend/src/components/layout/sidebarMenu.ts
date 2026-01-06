@@ -46,8 +46,8 @@ export const sidebarMenu: MenuSection[] = [
         title: "Setup",
         items: [
           { name: "Subjects Management", href: "/subjects" },
-          { name: "Posts", href: "/posts" },
-          { name: "Media", href: "/media" },
+          { name: "Students Management", href: "/students" },
+          { name: "Elective Management", href: "/electives" },
         ],
       },
       {

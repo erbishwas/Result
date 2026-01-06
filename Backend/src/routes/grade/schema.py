@@ -15,8 +15,15 @@ class GradeCreate(GradeBase):
     pass
 
 
-class GradeUpdate(GradeBase):
-    pass
+class GradeUpdate(BaseModel):
+    code: str | None = None
+    name: str | None = None
+    subject_count: int | None = None
+    has_elective: bool | None = None
+    elective_count: int | None = None
+    grade_teacher_id: int | None = None
+    is_active: bool | None = None
+
 
 
 class GradeOut(GradeBase):

@@ -3,19 +3,7 @@
 import api from './axios';
 
 // Minimal subject info (used when displaying electives in list)
-export interface SubjectMini {
-  id: number;
-  sub_code: string;
-  sub_name: string;
-}
 
-// ElectiveSub as returned in GET responses
-export interface ElectiveSubResponse {
-  id: number;
-  student_id: number;
-  sub_id: number;
-  year: string;
-}
 
 // Full Student interface (matches GET all / GET by ID response)
 export interface Student {
@@ -25,7 +13,6 @@ export interface Student {
   year: string;
   grade_id: number;
   is_active: boolean;
-  elective_subjects: ElectiveSubResponse[];
 }
 
 // Data sent when creating a student
@@ -35,10 +22,7 @@ export interface StudentCreateData {
   year: string;
   grade_id: number;
   is_active?: boolean; // optional, defaults to true
-  elective_subjects?: {
-    sub_id: number;
-    year: string;
-  }[];
+  
 }
 
 // Data sent when updating a student (partial)
@@ -48,12 +32,7 @@ export interface StudentUpdateData {
   year?: string;
   grade_id?: number;
   is_active?: boolean;
-  elective_subjects?: {
-    id?: number;
-    student_id?: number;
-    sub_id?: number;
-    year?: string;
-  }[];
+  
 }
 
 // Get all students (filtered by user's grade on backend)
